@@ -1,0 +1,96 @@
+#!/bin/bash
+# Ensure SSM is started
+sudo snap start amazon-ssm-agent
+
+# Update required packages
+apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends gdb curl lib32gcc1 libc++-dev unzip locales ca-certificates ufw
+locale-gen en_US.UTF-8
+
+# Create the steam user
+adduser --disabled-password --gecos "" steam
+usermod -a -G adm steam
+usermod -a -G sudo steam
+
+# Install steamcmd and pavlov.
+# NOTE: To use the RC version of Pavlov, we use "-beta shack_beta", if you want live I believe it is "-beta shack"
+mkdir -p /tmp/dumps
+mkdir -p /home/steam/Steam && cd /home/steam/Steam && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+CPU_MHZ=2500.000 /home/steam/Steam/steamcmd.sh +force_install_dir /home/steam/pavlovserver +login anonymous +app_update 622970 -beta shack_beta validate +exit
+CPU_MHZ=2500.000 /home/steam/Steam/steamcmd.sh +login anonymous +app_update 1007 +quit
+
+# Copy the correct steamclient.so in place
+mkdir -p /home/steam/.steam/sdk64
+cp -f /home/steam/Steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so
+cp -f /home/steam/Steam/linux64/steamclient.so /home/steam/pavlovserver/Pavlov/Binaries/Linux/steamclient.so
+
+mkdir -p /home/steam/pavlovserver/Pavlov/Saved/Logs
+mkdir -p /home/steam/pavlovserver/Pavlov/Saved/Config/LinuxServer
+mkdir -p /home/steam/pavlovserver/Pavlov/Saved/maps
+
+touch /home/steam/pavlovserver/Pavlov/Saved/Config/blacklist.txt
+touch /home/steam/pavlovserver/Pavlov/Saved/Config/whitelist.txt
+
+cat << EOF > /home/steam/pavlovserver/Pavlov/Saved/Config/mods.txt
+${moderators}
+EOF
+
+cat << EOF > /home/steam/pavlovserver/Pavlov/Saved/Config/LinuxServer/Game.ini
+[/Script/Pavlov.DedicatedServer]
+bEnabled=true
+ServerName=${server_name}
+MaxPlayers=10     #Set this to 10 for Shack. 24 is the max for PC, setting it higher will not allow players to join. 
+ApiKey=${pavlov_api_key}
+bSecured=true
+bCustomServer=true
+bVerboseLogging=false
+bCompetitive=false #This only works for SND
+bWhitelist=false
+RefreshListTime=120
+LimitedAmmoType=0
+TickRate=90
+TimeLimit=60
+#Password=0000
+#BalanceTableURL="vankruptgames/BalancingTable/main"
+MapRotation=(MapId="haguenau", GameMode="TDM")
+MapRotation=(MapId="datacenter", GameMode="TDM")
+MapRotation=(MapId="sand", GameMode="TDM")
+MapRotation=(MapId="santorini", GameMode="TDM")
+MapRotation=(MapId="siberia", GameMode="TDM")
+MapRotation=(MapId="bunker", GameMode="TDM")
+EOF
+
+# Ensure that firewall ports are open
+ufw status
+ufw allow 7777
+ufw allow 8177
+ufw allow 9100
+ufw status
+
+cat << EOF > /home/steam/pavlovserver/Pavlov/Saved/Config/RconSettings.txt
+Password=${rcon_password}
+Port=9100
+EOF
+
+# ensure user rights are correct
+chown -R steam:steam /home/steam
+
+cat << EOF > /etc/systemd/system/pavlovserver.service
+[Unit]
+Description=Pavlov VR dedicated server
+
+[Service]
+Type=simple
+WorkingDirectory=/home/steam/pavlovserver
+ExecStart=/home/steam/pavlovserver/PavlovServer.sh
+
+RestartSec=1
+Restart=always
+User=steam
+Group=steam
+
+[Install]
+WantedBy = multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl start pavlovserver
