@@ -8,7 +8,8 @@ environment.tfvars:
 .secrets.env:
 	echo "AWS_SECRET_ACCESS_KEY=" >> .secrets.env
 	echo "AWS_ACCESS_KEY_ID=" >> .secrets.env
-	echo "PAVLOV_KEY=" >> .secrets.env
+	echo "TF_VAR_rcon_password=" >> .secrets.env
+	echo "TF_VAR_pavlov_api_key=" >> .secrets.env
 	echo "Please fill in the values in .secrets.env"
 
 fmt: .secrets.env
