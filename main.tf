@@ -25,6 +25,7 @@ resource "aws_instance" "pavlov" {
     rcon_password  = var.rcon_password
     server_name    = var.server_name
     moderators     = var.moderators
+    maprotations   = var.maprotations
   }))
   tags = {
     Name = "Pavlov - ${var.server_name}"

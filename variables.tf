@@ -43,3 +43,12 @@ variable "moderators" {
   type        = string
   default     = ""
 }
+
+variable "maprotations" {
+  description = "A multi-line string of maprotations"
+  type        = string
+  default     = <<-EOS
+MapRotation=(MapId="haguenau", GameMode="TDM")
+MapRotation=(MapId="bunker", GameMode="TDM")
+EOS
+}
