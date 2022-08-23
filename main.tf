@@ -136,7 +136,7 @@ resource "aws_security_group" "pavlov" {
   ingress {
     from_port   = 9100
     to_port     = 9100
-    protocol    = "udp"
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -158,3 +158,6 @@ resource "aws_security_group" "pavlov" {
   }
 }
 
+output "ec2_global_ips" {
+  value = ["${aws_instance.pavlov.*.public_ip}"]
+}
